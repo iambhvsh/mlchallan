@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Challan #{{ challan.id }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;500;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0a0c0f;--surface:#111318;--card:#161a21;--border:#252b36;--amber:#f5a623;--amber-dim:#7d5312;--red:#e03e3e;--green:#2cb67d;--blue:#4a9eff;--text:#e8eaf0;--muted:#5a6278;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-weight:300;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.05) 2px,rgba(0,0,0,.05) 4px);pointer-events:none;z-index:1000;}
+  nav{background:var(--surface);border-bottom:2px solid var(--amber);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:900;}
+  .logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.5rem;letter-spacing:.15em;color:var(--amber);display:flex;align-items:center;gap:.8rem;}
+  .logo-icon{width:36px;height:36px;background:var(--amber);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:grid;place-items:center;font-size:.75rem;color:#000;font-weight:900;}
+  .nav-links{display:flex;gap:2rem;}
+  .nav-links a{color:var(--muted);text-decoration:none;font-family:'Barlow Condensed',sans-serif;font-weight:500;letter-spacing:.1em;font-size:.9rem;text-transform:uppercase;transition:.2s;}
+  .nav-links a:hover{color:var(--amber);}
+  main{padding:2rem;max-width:960px;margin:0 auto;}
+
+  .back-link{color:var(--muted);text-decoration:none;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:.4rem;margin-bottom:1.5rem;}
+  .back-link:hover{color:var(--amber);}
+
+  /* The challan document */
+  .challan-doc{background:var(--card);border:1px solid var(--border);overflow:hidden;}
+  .challan-header{background:var(--surface);border-bottom:3px solid var(--amber);padding:1.5rem 2rem;display:flex;justify-content:space-between;align-items:center;}
+  .challan-org{font-family:'Barlow Condensed',sans-serif;}
+  .challan-org-name{font-weight:900;font-size:1.4rem;letter-spacing:.1em;color:var(--amber);}
+  .challan-org-sub{font-size:.75rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;}
+  .challan-id-block{text-align:right;}
+  .challan-id-label{font-size:.65rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;}
+  .challan-id{font-family:'Share Tech Mono',monospace;font-size:1.4rem;color:var(--amber);}
+
+  .challan-body{padding:2rem;display:grid;grid-template-columns:1fr 1fr;gap:2rem;}
+  .section-label{font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);font-family:'Barlow Condensed',sans-serif;font-weight:700;margin-bottom:1rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);}
+
+  .field-row{display:flex;justify-content:space-between;padding:.45rem 0;border-bottom:1px solid rgba(255,255,255,.04);}
+  .field-key{font-size:.78rem;color:var(--muted);}
+  .field-val{font-size:.82rem;font-weight:500;text-align:right;max-width:60%;}
+  .field-val.plate{font-family:'Share Tech Mono',monospace;color:var(--amber);font-size:.95rem;}
+  .field-val.fine{font-family:'Share Tech Mono',monospace;color:var(--red);font-size:1rem;}
+  .field-val.db-hit{color:var(--green);}
+  .field-val.db-miss{color:var(--red);}
+
+  .challan-image{grid-column:1/-1;}
+  .challan-image img{width:100%;border:1px solid var(--border);}
+  .challan-image-label{font-size:.7rem;color:var(--muted);letter-spacing:.1em;font-family:'Share Tech Mono',monospace;margin-top:.4rem;}
+
+  .challan-footer{background:var(--surface);border-top:1px solid var(--border);padding:1.2rem 2rem;display:flex;justify-content:space-between;align-items:center;}
+  .fine-total-label{font-size:.7rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;}
+  .fine-total{font-family:'Share Tech Mono',monospace;font-size:2rem;color:var(--red);}
+  .status-badge{padding:.5rem 1.2rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:.85rem;}
+  .status-pending{background:rgba(245,166,35,.15);color:var(--amber);border:2px solid var(--amber);}
+  .status-paid{background:rgba(44,182,125,.15);color:var(--green);border:2px solid var(--green);}
+
+  .actions{display:flex;gap:1rem;margin-top:1.5rem;}
+  .btn{display:inline-flex;align-items:center;gap:.5rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.5rem;font-size:.85rem;border:none;cursor:pointer;text-decoration:none;transition:.2s;}
+  .btn-outline{background:transparent;color:var(--muted);border:1px solid var(--border);}
+  .btn-outline:hover{border-color:var(--amber);color:var(--amber);}
+  .btn-green{background:rgba(44,182,125,.15);color:var(--green);border:1px solid var(--green);}
+  .btn-green:hover{background:rgba(44,182,125,.25);}
+
+  /* Minimal UI override */
+  :root{
+    --bg:#f6f7f9;--surface:#ffffff;--card:#ffffff;--border:#e5e7eb;
+    --amber:#2563eb;--amber-dim:#cbd5e1;--red:#dc2626;--green:#16a34a;
+    --blue:#2563eb;--text:#111827;--muted:#6b7280;
+  }
+  body{font-family:"Segoe UI",Tahoma,sans-serif;background:var(--bg);color:var(--text);}
+  body::before{display:none;}
+  nav{border-bottom:1px solid var(--border);background:var(--surface);}
+  .logo{font-size:1.1rem;letter-spacing:0;color:var(--text);}
+  .logo-icon{display:none;}
+  .nav-links a{color:var(--muted);text-transform:none;letter-spacing:0;font-family:inherit;}
+  .nav-links a:hover{color:var(--text);}
+  .challan-doc,.challan-header,.challan-footer{background:#fff;border:1px solid var(--border);}
+  .challan-header{border-bottom:1px solid var(--border);}
+  .challan-org,.challan-org-name,.section-label,.status-badge,.btn,.fine-total,.challan-id{font-family:inherit;letter-spacing:0;text-transform:none;}
+  .challan-org-name{font-size:1.2rem;color:var(--text);}
+  .section-label{color:var(--muted);font-size:.8rem;font-weight:600;}
+  .field-row{border-bottom:1px solid #f1f5f9;}
+  .field-val.plate,.field-val.fine,.fine-total,.challan-id{color:var(--text);}
+  .status-pending,.status-paid{background:#f3f4f6;color:var(--text);border:1px solid var(--border);}
+  .btn-outline,.btn-green{border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--text);}
+  .btn-outline:hover,.btn-green:hover{background:#f3f4f6;border-color:#d1d5db;color:var(--text);}
+  .back-link{letter-spacing:0;text-transform:none;}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><div class="logo-icon">⬡</div>ATCS</div>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/analyze">Analyze Image</a>
+  </div>
+</nav>
+
+<main>
+  <a href="/" class="back-link">← Back to Dashboard</a>
+
+  <div class="challan-doc" id="challanDoc">
+    <div class="challan-header">
+      <div class="challan-org">
+        <div class="challan-org-name">TRAFFIC POLICE</div>
+        <div class="challan-org-sub">Automated Traffic Control System</div>
+        <div class="challan-org-sub" style="margin-top:.2rem">E-Challan Notice</div>
+      </div>
+      <div class="challan-id-block">
+        <div class="challan-id-label">Challan ID</div>
+        <div class="challan-id">#{{ challan.id }}</div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:.3rem">{{ challan.created_at[:10] }}</div>
+      </div>
+    </div>
+
+    <div class="challan-body">
+      <!-- Offender -->
+      <div>
+        <div class="section-label">Vehicle & Owner</div>
+        <div class="field-row"><span class="field-key">Plate Number</span><span class="field-val plate">{{ challan.plate_number or '—' }}</span></div>
+        <div class="field-row"><span class="field-key">Owner Name</span><span class="field-val">{{ challan.owner_name }}</span></div>
+        <div class="field-row"><span class="field-key">Address</span><span class="field-val">{{ challan.owner_address }}</span></div>
+        <div class="field-row"><span class="field-key">Vehicle Type</span><span class="field-val">{{ challan.vehicle_type }}</span></div>
+        <div class="field-row"><span class="field-key">Vehicle Model</span><span class="field-val">{{ challan.vehicle_model }}</span></div>
+        <div class="field-row"><span class="field-key">Found in DB</span>
+          <span class="field-val {% if challan.plate_found_in_db %}db-hit{% else %}db-miss{% endif %}">
+            {% if challan.plate_found_in_db %}✓ Yes{% else %}✗ Not Found{% endif %}
+          </span>
+        </div>
+      </div>
+
+      <!-- Violation -->
+      <div>
+        <div class="section-label">Violation Details</div>
+        <div class="field-row"><span class="field-key">Violation</span><span class="field-val" style="color:var(--red)">{{ challan.violation_description }}</span></div>
+        <div class="field-row"><span class="field-key">Legal Section</span><span class="field-val">{{ challan.legal_section }}</span></div>
+        <div class="field-row"><span class="field-key">Fine Amount</span><span class="field-val fine">₹{{ "{:,}".format(challan.fine_amount) }}</span></div>
+        <div class="field-row"><span class="field-key">OCR Confidence</span><span class="field-val">{{ challan.ocr_confidence }}%</span></div>
+        <div class="field-row"><span class="field-key">Issued By</span><span class="field-val">{{ challan.issued_by }}</span></div>
+        <div class="field-row"><span class="field-key">Date & Time</span><span class="field-val">{{ challan.created_at[:19].replace('T',' ') }}</span></div>
+      </div>
+
+      <!-- Capture image -->
+      {% if challan.annotated_image %}
+      <div class="challan-image">
+        <div class="section-label">Violation Capture</div>
+        <img src="/static/uploads/{{ challan.annotated_image }}" alt="violation capture">
+        <div class="challan-image-label">{{ challan.annotated_image }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="challan-footer">
+      <div>
+        <div class="fine-total-label">Total Fine Payable</div>
+        <div class="fine-total">₹{{ "{:,}".format(challan.fine_amount) }}</div>
+      </div>
+      <div class="status-badge {% if challan.status == 'Pending' %}status-pending{% else %}status-paid{% endif %}">
+        {{ challan.status }}
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <a href="/" class="btn btn-outline">← Dashboard</a>
+    {% if challan.status == 'Pending' %}
+    <button class="btn btn-green" onclick="markPaid('{{ challan.id }}')">✓ Mark as Paid</button>
+    {% endif %}
+    <button class="btn btn-outline" onclick="window.print()">⎙ Print</button>
+  </div>
+</main>
+
+<script>
+async function markPaid(id){
+  if(!confirm('Mark this challan as paid?')) return;
+  const resp = await fetch('/api/mark_paid/'+id, {method:'POST'});
+  if(resp.ok){ location.reload(); }
+  else { alert('Failed to update status'); }
+}
+</script>
+</body>
+</html>

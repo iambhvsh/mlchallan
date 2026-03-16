@@ -1,0 +1,13 @@
+flask>=3.0,<4
+ultralytics>=8.0,<9
+easyocr>=1.7,<2
+opencv-python-headless>=4.9,<5
+Pillow>=10,<12
+numpy>=1.24,<3
+kagglehub[pandas-datasets]>=0.2,<2
+pandas>=2.0,<3
+
+# Optional and heavy: only needed if you use custom Keras/TensorFlow models.
+# Keep it out of the default install to avoid protobuf/packaging conflicts
+# with unrelated globally installed tooling.
+# tensorflow>=2.15,<2.22

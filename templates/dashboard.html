@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATCS — Automated Traffic Challan System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;500;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0c0f;
+    --surface:  #111318;
+    --card:     #161a21;
+    --border:   #252b36;
+    --amber:    #f5a623;
+    --amber-dim:#7d5312;
+    --red:      #e03e3e;
+    --green:    #2cb67d;
+    --blue:     #4a9eff;
+    --text:     #e8eaf0;
+    --muted:    #5a6278;
+    --scan:     rgba(245,166,35,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* scanline overlay */
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.05) 2px, rgba(0,0,0,.05) 4px);
+    pointer-events:none; z-index:1000;
+  }
+
+  /* ── NAV ── */
+  nav {
+    background: var(--surface);
+    border-bottom: 2px solid var(--amber);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky; top:0; z-index:900;
+  }
+  .logo {
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:900; font-size:1.5rem;
+    letter-spacing:.15em;
+    color: var(--amber);
+    display:flex; align-items:center; gap:.8rem;
+  }
+  .logo-icon {
+    width:36px; height:36px;
+    background: var(--amber);
+    clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+    display:grid; place-items:center;
+    font-size:.75rem; color:#000; font-weight:900;
+  }
+  .nav-links { display:flex; gap:2rem; }
+  .nav-links a {
+    color:var(--muted); text-decoration:none;
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:500; letter-spacing:.1em;
+    font-size:.9rem; text-transform:uppercase;
+    transition:.2s;
+  }
+  .nav-links a:hover, .nav-links a.active { color:var(--amber); }
+  .nav-time {
+    font-family:'Share Tech Mono',monospace;
+    font-size:.8rem; color:var(--muted);
+  }
+
+  /* ── LAYOUT ── */
+  main { padding:2rem; max-width:1600px; margin:0 auto; }
+
+  .page-header {
+    display:flex; align-items:flex-end; justify-content:space-between;
+    margin-bottom:2rem;
+    padding-bottom:1rem;
+    border-bottom:1px solid var(--border);
+  }
+  .page-title {
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700; font-size:2.2rem; letter-spacing:.05em;
+    line-height:1;
+  }
+  .page-title span { color:var(--amber); }
+  .page-subtitle {
+    font-size:.85rem; color:var(--muted); letter-spacing:.1em;
+    text-transform:uppercase; margin-top:.3rem;
+  }
+
+  /* ── STATS GRID ── */
+  .stats-grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap:1rem; margin-bottom:2rem;
+  }
+  .stat-card {
+    background:var(--card);
+    border:1px solid var(--border);
+    border-top:3px solid var(--amber-dim);
+    padding:1.5rem 1.5rem 1.2rem;
+    position:relative; overflow:hidden;
+    transition:.3s;
+  }
+  .stat-card:hover { border-top-color:var(--amber); transform:translateY(-2px); }
+  .stat-card::after {
+    content:'';
+    position:absolute; top:0; right:0;
+    width:60px; height:60px;
+    background: radial-gradient(circle at top right, var(--scan), transparent);
+  }
+  .stat-label {
+    font-size:.7rem; letter-spacing:.15em;
+    text-transform:uppercase; color:var(--muted);
+    font-family:'Barlow Condensed',sans-serif; font-weight:500;
+  }
+  .stat-value {
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:900; font-size:3rem;
+    line-height:1; margin:.5rem 0 .3rem;
+    color:var(--amber);
+  }
+  .stat-sub { font-size:.75rem; color:var(--muted); }
+
+  /* ── ANALYZE BUTTON ── */
+  .cta-bar {
+    display:flex; gap:1rem; margin-bottom:2rem; align-items:center;
+  }
+  .btn {
+    display:inline-flex; align-items:center; gap:.5rem;
+    font-family:'Barlow Condensed',sans-serif; font-weight:700;
+    letter-spacing:.1em; text-transform:uppercase;
+    padding:.7rem 1.8rem; font-size:.9rem;
+    border:none; cursor:pointer; text-decoration:none;
+    transition:.2s;
+  }
+  .btn-primary {
+    background:var(--amber); color:#000;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+  .btn-primary:hover { background:#ffbc45; }
+  .btn-outline {
+    background:transparent; color:var(--amber);
+    border:1px solid var(--amber-dim);
+  }
+  .btn-outline:hover { border-color:var(--amber); background:rgba(245,166,35,.05); }
+  .live-badge {
+    display:inline-flex; align-items:center; gap:.5rem;
+    font-size:.75rem; color:var(--green); letter-spacing:.1em;
+    text-transform:uppercase; font-family:'Share Tech Mono',monospace;
+  }
+  .live-dot {
+    width:8px; height:8px; border-radius:50%;
+    background:var(--green);
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%,100%{opacity:1;} 50%{opacity:.3;}
+  }
+
+  /* ── TABLE ── */
+  .section-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:1rem;
+  }
+  .section-title {
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700; font-size:1.2rem; letter-spacing:.1em;
+    text-transform:uppercase;
+  }
+  .section-title::before {
+    content:'▶ '; color:var(--amber);
+  }
+  .filter-bar {
+    display:flex; gap:.5rem;
+  }
+  .filter-btn {
+    background:var(--card); border:1px solid var(--border);
+    color:var(--muted); padding:.3rem .8rem;
+    font-size:.75rem; font-family:'Barlow Condensed',sans-serif;
+    letter-spacing:.05em; cursor:pointer; transition:.2s;
+  }
+  .filter-btn.active, .filter-btn:hover {
+    border-color:var(--amber); color:var(--amber);
+  }
+
+  .table-wrap {
+    background:var(--card);
+    border:1px solid var(--border);
+    overflow-x:auto;
+  }
+  table { width:100%; border-collapse:collapse; }
+  thead tr {
+    background:var(--surface);
+    border-bottom:2px solid var(--border);
+  }
+  th {
+    padding:.9rem 1rem; text-align:left;
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700; font-size:.75rem;
+    letter-spacing:.15em; text-transform:uppercase;
+    color:var(--muted);
+  }
+  td {
+    padding:.85rem 1rem;
+    border-bottom:1px solid var(--border);
+    font-size:.875rem;
+  }
+  tr:hover td { background:rgba(245,166,35,.03); }
+  tr:last-child td { border-bottom:none; }
+
+  .plate {
+    font-family:'Share Tech Mono',monospace;
+    font-size:.9rem; color:var(--amber);
+    background:rgba(245,166,35,.08);
+    padding:.2rem .5rem; letter-spacing:.05em;
+  }
+  .badge {
+    display:inline-block;
+    padding:.2rem .6rem;
+    font-size:.7rem; letter-spacing:.1em;
+    font-family:'Barlow Condensed',sans-serif; font-weight:700;
+    text-transform:uppercase;
+  }
+  .badge-red    { background:rgba(224,62,62,.15); color:var(--red); border:1px solid var(--red); }
+  .badge-orange { background:rgba(245,166,35,.15); color:var(--amber); border:1px solid var(--amber-dim); }
+  .badge-green  { background:rgba(44,182,125,.15); color:var(--green); border:1px solid var(--green); }
+  .badge-blue   { background:rgba(74,158,255,.15); color:var(--blue); border:1px solid var(--blue); }
+
+  .amount { font-family:'Share Tech Mono',monospace; color:var(--red); }
+
+  .action-link {
+    color:var(--blue); text-decoration:none; font-size:.8rem;
+    letter-spacing:.05em;
+  }
+  .action-link:hover { color:var(--amber); }
+
+  .empty-state {
+    padding:4rem 2rem; text-align:center; color:var(--muted);
+  }
+  .empty-state svg { opacity:.2; margin-bottom:1rem; }
+  .empty-state p { font-size:.9rem; letter-spacing:.05em; }
+
+  /* ── VIOLATION TYPE CHART ── */
+  .bottom-grid {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:1.5rem; margin-top:2rem;
+  }
+  .chart-card {
+    background:var(--card); border:1px solid var(--border);
+    padding:1.5rem;
+  }
+  .chart-bar-row {
+    display:flex; align-items:center; gap:1rem;
+    margin-bottom:.8rem;
+  }
+  .chart-bar-label {
+    font-size:.75rem; color:var(--muted); width:90px;
+    text-transform:capitalize; letter-spacing:.05em;
+    font-family:'Barlow Condensed',sans-serif;
+  }
+  .chart-bar-track {
+    flex:1; height:18px; background:var(--border); position:relative;
+  }
+  .chart-bar-fill {
+    height:100%; background:var(--amber);
+    transition: width 1s ease;
+    position:relative;
+  }
+  .chart-bar-fill::after {
+    content: attr(data-count);
+    position:absolute; right:-28px; top:50%;
+    transform:translateY(-50%);
+    font-size:.7rem; color:var(--muted);
+    font-family:'Share Tech Mono',monospace;
+  }
+
+  /* recent image strip */
+  .recent-images {
+    display:flex; flex-wrap:wrap; gap:.75rem;
+  }
+  .thumb {
+    width:100px; height:70px; object-fit:cover;
+    border:1px solid var(--border); opacity:.7;
+    transition:.2s; cursor:pointer;
+  }
+  .thumb:hover { opacity:1; border-color:var(--amber); }
+
+  @media(max-width:768px){
+    .bottom-grid{grid-template-columns:1fr;}
+    .stats-grid{grid-template-columns:repeat(2,1fr);}
+    .nav-links{display:none;}
+  }
+
+  /* Minimal UI override */
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --amber: #2563eb;
+    --amber-dim: #cbd5e1;
+    --red: #dc2626;
+    --green: #16a34a;
+    --blue: #2563eb;
+    --text: #111827;
+    --muted: #6b7280;
+  }
+  body { font-family: "Segoe UI", Tahoma, sans-serif; background: var(--bg); color: var(--text); }
+  body::before { display: none; }
+  nav { border-bottom: 1px solid var(--border); background: var(--surface); }
+  .logo { font-size: 1.1rem; letter-spacing: 0; color: var(--text); }
+  .logo-icon { display: none; }
+  .nav-links a, .nav-links a.active { color: var(--muted); }
+  .nav-links a:hover { color: var(--text); }
+  .page-title, .section-title, .stat-value, .stat-label, th, .btn { font-family: inherit; letter-spacing: 0; text-transform: none; }
+  .page-title { font-size: 1.6rem; font-weight: 600; }
+  .page-title span { color: inherit; }
+  .page-subtitle { text-transform: none; letter-spacing: 0; }
+  .live-badge, .live-dot { display: none; }
+  .stat-card, .table-wrap, .chart-card { border: 1px solid var(--border); border-radius: 8px; box-shadow: none; }
+  .stat-card::after, .section-title::before { content: none; }
+  .stat-card:hover { transform: none; border-top-color: var(--border); }
+  .stat-value { color: var(--text); font-size: 2rem; }
+  .btn-primary, .btn-outline { clip-path: none; border-radius: 6px; border: 1px solid var(--border); background: #fff; color: var(--text); }
+  .btn-primary:hover, .btn-outline:hover { background: #f3f4f6; border-color: #d1d5db; }
+  .filter-btn { border-radius: 6px; background: #fff; color: var(--muted); }
+  .filter-btn.active, .filter-btn:hover { background: #f3f4f6; color: var(--text); border-color: #d1d5db; }
+  tr:hover td { background: #f9fafb; }
+  .plate { background: #f3f4f6; color: var(--text); border-radius: 4px; }
+  .badge, .status-badge { text-transform: none; letter-spacing: 0; border-radius: 999px; }
+  .badge-red, .badge-orange, .badge-green, .badge-blue { border-color: var(--border); background: #f3f4f6; color: var(--text); }
+  .amount { color: var(--text); }
+  .chart-bar-track { background: #eef2f7; border-radius: 999px; }
+  .chart-bar-fill { background: #94a3b8; border-radius: 999px; }
+  .thumb { opacity: 1; border-radius: 6px; }
+  .thumb:hover { border-color: #d1d5db; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <div class="logo-icon">⬡</div>
+    ATCS
+  </div>
+  <div class="nav-links">
+    <a href="/" class="active">Dashboard</a>
+    <a href="/analyze">Analyze Image</a>
+  </div>
+  <div class="nav-time" id="clock">--:--:--</div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div>
+      <div class="page-title">CHALLAN <span>DASHBOARD</span></div>
+      <div class="page-subtitle">Automated Traffic Control System — Violation Records</div>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div> System Active
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Challans</div>
+      <div class="stat-value">{{ stats.total }}</div>
+      <div class="stat-sub">All time records</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Pending</div>
+      <div class="stat-value" style="color:var(--red)">{{ stats.pending }}</div>
+      <div class="stat-sub">Awaiting payment</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Paid</div>
+      <div class="stat-value" style="color:var(--green)">{{ stats.paid }}</div>
+      <div class="stat-sub">Cleared challans</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Fine (₹)</div>
+      <div class="stat-value" style="font-size:2rem">{{ "{:,}".format(stats.total_fine) }}</div>
+      <div class="stat-sub">Cumulative amount</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Last 7 Days</div>
+      <div class="stat-value" style="color:var(--blue)">{{ stats.recent_7_days }}</div>
+      <div class="stat-sub">Recent violations</div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-bar">
+    <a href="/analyze" class="btn btn-primary">⊕ Analyze New Image</a>
+    <a href="/api/challans" target="_blank" class="btn btn-outline">↓ Export JSON</a>
+  </div>
+
+  <!-- Challan Table -->
+  <div class="section-header">
+    <div class="section-title">Challan History</div>
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterTable('all',this)">All</button>
+      <button class="filter-btn" onclick="filterTable('Pending',this)">Pending</button>
+      <button class="filter-btn" onclick="filterTable('Paid',this)">Paid</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    {% if challans %}
+    <table id="challanTable">
+      <thead>
+        <tr>
+          <th>Challan ID</th>
+          <th>Plate No.</th>
+          <th>Owner</th>
+          <th>Vehicle</th>
+          <th>Violation</th>
+          <th>Fine (₹)</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in challans %}
+        <tr data-status="{{ c.status }}">
+          <td><span style="font-family:'Share Tech Mono',monospace;font-size:.8rem;color:var(--muted)">#{{ c.id }}</span></td>
+          <td><span class="plate">{{ c.plate_number or '—' }}</span></td>
+          <td>{{ c.owner_name }}</td>
+          <td>
+            <span class="badge {% if c.vehicle_type == 'car' %}badge-blue{% elif c.vehicle_type == 'motorcycle' %}badge-orange{% else %}badge-green{% endif %}">
+              {{ c.vehicle_type }}
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-red">{{ c.violation_type.replace('_',' ') }}</span>
+          </td>
+          <td><span class="amount">₹{{ "{:,}".format(c.fine_amount) }}</span></td>
+          <td>
+            <span class="badge {% if c.status == 'Pending' %}badge-orange{% else %}badge-green{% endif %}">
+              {{ c.status }}
+            </span>
+          </td>
+          <td style="font-size:.78rem;color:var(--muted)">
+            {{ c.created_at[:10] }}
+          </td>
+          <td><a href="/challan/{{ c.id }}" class="action-link">View →</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+      </svg>
+      <p>No challans yet. <a href="/analyze" style="color:var(--amber)">Analyze an image</a> to get started.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Bottom grid -->
+  {% if stats.by_type %}
+  <div class="bottom-grid">
+    <div class="chart-card">
+      <div class="section-title" style="margin-bottom:1.5rem">Violations by Type</div>
+      {% set max_count = stats.by_type.values()|max %}
+      {% for vtype, count in stats.by_type.items() %}
+      <div class="chart-bar-row">
+        <div class="chart-bar-label">{{ vtype.replace('_',' ') }}</div>
+        <div class="chart-bar-track">
+          <div class="chart-bar-fill" data-width="{{ (count / max_count * 100)|int }}" data-count="{{ count }}"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="chart-card">
+      <div class="section-title" style="margin-bottom:1.5rem">Recent Captures</div>
+      <div class="recent-images">
+        {% for c in challans[:12] %}
+          {% if c.annotated_image %}
+          <img class="thumb" src="/static/uploads/{{ c.annotated_image }}"
+               alt="capture" onclick="window.location='/challan/{{ c.id }}'">
+          {% endif %}
+        {% endfor %}
+        {% if not challans %}
+        <p style="color:var(--muted);font-size:.85rem">No captures yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</main>
+
+<script>
+  // Live clock
+  function tick(){
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString('en-IN',{hour12:false});
+  }
+  tick(); setInterval(tick,1000);
+
+  // Apply dynamic chart widths from data attributes (template-safe for CSS linters).
+  document.querySelectorAll('.chart-bar-fill').forEach(el => {
+    const pct = Number(el.dataset.width || 0);
+    el.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  });
+
+  // Table filter
+  function filterTable(status, btn){
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#challanTable tbody tr').forEach(row=>{
+      row.style.display = (status==='all' || row.dataset.status===status) ? '' : 'none';
+    });
+  }
+</script>
+</body>
+</html>

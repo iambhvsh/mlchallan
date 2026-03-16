@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATCS — Analyze Image</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;500;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0c0f; --surface:#111318; --card:#161a21; --border:#252b36;
+    --amber:#f5a623; --amber-dim:#7d5312; --red:#e03e3e;
+    --green:#2cb67d; --blue:#4a9eff; --text:#e8eaf0; --muted:#5a6278;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-weight:300;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.05) 2px,rgba(0,0,0,.05) 4px);pointer-events:none;z-index:1000;}
+  nav{background:var(--surface);border-bottom:2px solid var(--amber);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:900;}
+  .logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.5rem;letter-spacing:.15em;color:var(--amber);display:flex;align-items:center;gap:.8rem;}
+  .logo-icon{width:36px;height:36px;background:var(--amber);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:grid;place-items:center;font-size:.75rem;color:#000;font-weight:900;}
+  .nav-links{display:flex;gap:2rem;}
+  .nav-links a{color:var(--muted);text-decoration:none;font-family:'Barlow Condensed',sans-serif;font-weight:500;letter-spacing:.1em;font-size:.9rem;text-transform:uppercase;transition:.2s;}
+  .nav-links a:hover,.nav-links a.active{color:var(--amber);}
+
+  main{padding:2rem;max-width:1400px;margin:0 auto;}
+  .page-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:2rem;letter-spacing:.05em;margin-bottom:2rem;}
+  .page-title span{color:var(--amber);}
+
+  .layout{display:grid;grid-template-columns:420px 1fr;gap:2rem;align-items:start;}
+
+  /* Upload Panel */
+  .panel{background:var(--card);border:1px solid var(--border);padding:1.5rem;}
+  .panel-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.85rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:1.2rem;}
+
+  .drop-zone{
+    border:2px dashed var(--border); padding:3rem 1rem;
+    text-align:center; cursor:pointer; transition:.2s;
+    position:relative;
+  }
+  .drop-zone:hover,.drop-zone.dragover{border-color:var(--amber);background:rgba(245,166,35,.03);}
+  .drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .drop-icon{font-size:2.5rem;opacity:.3;margin-bottom:.8rem;}
+  .drop-text{font-size:.85rem;color:var(--muted);line-height:1.6;}
+  .drop-text strong{color:var(--amber);}
+
+  .preview-wrap{margin-top:1rem;display:none;}
+  #previewImg{width:100%;border:1px solid var(--border);}
+  .webcam-wrap{margin-top:1rem;display:none;position:relative;}
+  #liveVideo{width:100%;border:1px solid var(--border);border-radius:6px;background:#000;}
+  #liveOverlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  .btn-row{display:flex;gap:.5rem;margin-top:.8rem;}
+  .btn-row .btn{margin-top:0;padding:.55rem .8rem;font-size:.82rem;flex:1;}
+  .btn-secondary{background:#fff;color:var(--text);border:1px solid var(--border);border-radius:6px;}
+  .btn-secondary:hover{background:#f3f4f6;}
+  .live-status{margin-top:.6rem;font-size:.82rem;color:var(--muted);}
+  .live-metrics{margin-top:.6rem;border:1px solid var(--border);border-radius:8px;padding:.6rem;background:#fff;}
+  .metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;}
+  .metric{border:1px solid var(--border);border-radius:6px;padding:.35rem .4rem;text-align:center;}
+  .metric-label{font-size:.68rem;color:var(--muted);}
+  .metric-value{font-weight:600;font-size:.95rem;color:var(--text);}
+  .metric-foot{margin-top:.45rem;font-size:.72rem;color:var(--muted);}
+
+  .form-group{margin-top:1.2rem;}
+  label{display:block;font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;font-family:'Barlow Condensed',sans-serif;font-weight:500;}
+  select,input[type=range]{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.6rem .8rem;font-family:'Barlow',sans-serif;font-size:.875rem;}
+  select:focus,input:focus{outline:none;border-color:var(--amber);}
+  .range-row{display:flex;align-items:center;gap:.8rem;}
+  #stopLineVal{font-family:'Share Tech Mono',monospace;font-size:.85rem;color:var(--amber);white-space:nowrap;}
+
+  .btn{display:inline-flex;align-items:center;gap:.5rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.8rem;font-size:.9rem;border:none;cursor:pointer;text-decoration:none;transition:.2s;width:100%;justify-content:center;margin-top:1.5rem;}
+  .btn-primary{background:var(--amber);color:#000;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));}
+  .btn-primary:hover{background:#ffbc45;}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* Results Panel */
+  .results-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:400px;background:var(--card);border:1px solid var(--border);color:var(--muted);}
+  .results-empty svg{opacity:.15;margin-bottom:1rem;}
+
+  .results-content{display:none;}
+  .annotated-wrap{position:relative;background:var(--card);border:1px solid var(--border);overflow:hidden;}
+  .annotated-wrap img{width:100%;display:block;}
+  .annotated-caption{padding:.6rem 1rem;font-size:.75rem;color:var(--muted);font-family:'Share Tech Mono',monospace;border-top:1px solid var(--border);}
+
+  .violation-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin-top:1.5rem;}
+  .vcard{background:var(--card);border:1px solid var(--red);padding:1.2rem;position:relative;}
+  .vcard::before{content:'VIOLATION';position:absolute;top:.6rem;right:.6rem;font-size:.6rem;letter-spacing:.15em;color:var(--red);font-family:'Barlow Condensed',sans-serif;font-weight:700;}
+  .vcard-plate{font-family:'Share Tech Mono',monospace;font-size:1.4rem;color:var(--amber);margin-bottom:.5rem;letter-spacing:.05em;}
+  .vcard-row{display:flex;justify-content:space-between;font-size:.8rem;padding:.3rem 0;border-bottom:1px solid var(--border);}
+  .vcard-row:last-child{border-bottom:none;}
+  .vcard-key{color:var(--muted);}
+  .vcard-val{color:var(--text);font-weight:500;}
+
+  .challan-issued{background:rgba(44,182,125,.08);border:1px solid var(--green);padding:1.2rem;margin-top:1rem;}
+  .challan-issued-title{color:var(--green);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem;font-size:.85rem;}
+
+  .spinner{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:200px;gap:1rem;color:var(--muted);}
+  .spin-ring{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--amber);border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .summary-bar{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--amber);padding:.8rem 1rem;margin-top:1rem;font-size:.85rem;color:var(--muted);}
+
+  @media(max-width:900px){.layout{grid-template-columns:1fr;}}
+
+  /* Minimal UI override */
+  :root{
+    --bg:#f6f7f9; --surface:#ffffff; --card:#ffffff; --border:#e5e7eb;
+    --amber:#2563eb; --amber-dim:#cbd5e1; --red:#dc2626;
+    --green:#16a34a; --blue:#2563eb; --text:#111827; --muted:#6b7280;
+  }
+  body{font-family:"Segoe UI",Tahoma,sans-serif;background:var(--bg);color:var(--text);}
+  body::before{display:none;}
+  nav{border-bottom:1px solid var(--border);background:var(--surface);}
+  .logo{font-size:1.1rem;letter-spacing:0;color:var(--text);}
+  .logo-icon{display:none;}
+  .nav-links a,.nav-links a.active{color:var(--muted);}
+  .nav-links a:hover{color:var(--text);}
+  .page-title,.panel-title,.btn,label{font-family:inherit;letter-spacing:0;text-transform:none;}
+  .page-title{font-size:1.6rem;font-weight:600;}
+  .page-title span{color:inherit;}
+  .panel,.results-empty,.annotated-wrap,.vcard,.challan-issued,.summary-bar{border:1px solid var(--border);border-radius:8px;background:#fff;}
+  .drop-zone{border:1px solid var(--border);border-radius:8px;background:#fafafa;}
+  .drop-zone:hover,.drop-zone.dragover{background:#f3f4f6;border-color:#d1d5db;}
+  select,input[type=range]{background:#fff;border:1px solid var(--border);border-radius:6px;color:var(--text);}
+  .btn-primary{clip-path:none;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--text);}
+  .btn-primary:hover{background:#f3f4f6;}
+  .annotated-caption{font-family:inherit;}
+  .vcard::before{display:none;}
+  .vcard-plate{font-family:inherit;font-size:1.1rem;color:var(--text);}
+  .spin-ring{border-top-color:#94a3b8;}
+  .summary-bar{border-left:1px solid var(--border);}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><div class="logo-icon">⬡</div>ATCS</div>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/analyze" class="active">Analyze Image</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-title">ANALYZE <span>IMAGE</span></div>
+
+  <div class="layout">
+    <!-- Left: Upload form -->
+    <div>
+      <div class="panel">
+        <div class="panel-title">Input Image</div>
+
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept="image/*">
+          <div class="drop-icon">📷</div>
+          <div class="drop-text">
+            <strong>Click or drag</strong> an image here<br>
+            JPG, PNG, WEBP supported
+          </div>
+        </div>
+
+        <div class="preview-wrap" id="previewWrap">
+          <img id="previewImg" src="" alt="preview">
+        </div>
+
+        <div class="form-group">
+          <label>Violation Type</label>
+          <select id="violationType">
+            <option value="signal">Red Signal Jump</option>
+            <option value="stop_line">Stop Line Crossing</option>
+            <option value="no_helmet">No Helmet</option>
+            <option value="speeding">Over Speeding</option>
+            <option value="wrong_lane">Wrong Lane</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Stop Line Position (% from top)</label>
+          <div class="range-row">
+            <input type="range" id="stopLine" min="10" max="90" value="35"
+                   oninput="document.getElementById('stopLineVal').textContent=this.value+'%'">
+            <span id="stopLineVal">35%</span>
+          </div>
+          <div style="margin-top:.5rem;">
+            <label style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--muted);text-transform:none;letter-spacing:0;">
+              <input type="checkbox" id="autoStopLine">
+              Auto-detect stop line
+            </label>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="analyzeBtn" onclick="analyzeImage()" disabled>
+          ⊕ ANALYZE FOR VIOLATIONS
+        </button>
+
+        <div class="form-group">
+          <label>Live Camera</label>
+          <div class="btn-row">
+            <button class="btn btn-secondary" type="button" id="startCamBtn" onclick="startCamera()">Start Camera</button>
+            <button class="btn btn-secondary" type="button" id="liveDetectBtn" onclick="toggleLiveDetection()" disabled>Start Live</button>
+            <button class="btn btn-secondary" type="button" id="switchCamBtn" onclick="switchCamera()" disabled>Front Camera</button>
+            <button class="btn btn-secondary" type="button" id="stopCamBtn" onclick="stopCamera()" disabled>Stop</button>
+          </div>
+          <div class="webcam-wrap" id="webcamWrap">
+            <video id="liveVideo" autoplay muted playsinline></video>
+            <canvas id="liveCanvas" width="640" height="360" style="display:none"></canvas>
+            <canvas id="liveOverlay"></canvas>
+          </div>
+          <div class="live-status" id="liveStatus">Camera is off.</div>
+          <div class="live-metrics" id="liveMetrics">
+            <div class="metric-grid">
+              <div class="metric"><div class="metric-label">Cycles</div><div class="metric-value" id="mCycles">0</div></div>
+              <div class="metric"><div class="metric-label">Vehicles</div><div class="metric-value" id="mVehicles">0</div></div>
+              <div class="metric"><div class="metric-label">Violations</div><div class="metric-value" id="mViolations">0</div></div>
+              <div class="metric"><div class="metric-label">Challans</div><div class="metric-value" id="mChallans">0</div></div>
+            </div>
+            <div class="metric-foot" id="mLast">Last update: --</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Results -->
+    <div>
+      <div class="results-empty" id="resultsEmpty">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          <path d="M11 8v6M8 11h6"/>
+        </svg>
+        <p>Upload an image and click Analyze</p>
+      </div>
+
+      <div class="spinner" id="spinner">
+        <div class="spin-ring"></div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:.8rem">SCANNING IMAGE...</div>
+      </div>
+
+      <div class="results-content" id="resultsContent">
+        <div class="annotated-wrap">
+          <img id="annotatedImg" src="" alt="annotated">
+          <div class="annotated-caption" id="annotatedCaption">—</div>
+        </div>
+        <div class="summary-bar" id="summaryBar"></div>
+        <div class="violation-cards" id="violationCards"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const dropZone  = document.getElementById('dropZone');
+const previewWrap = document.getElementById('previewWrap');
+const previewImg  = document.getElementById('previewImg');
+const analyzeBtn  = document.getElementById('analyzeBtn');
+let selectedFile = null;
+let liveStream = null;
+let liveTimer = null;
+let liveBusy = false;
+let liveRunning = false;
+let cameraFacing = 'environment'; // environment=rear, user=front
+let liveStats = { cycles: 0, vehicles: 0, violations: 0, challans: 0 };
+const liveStreamId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('stream-' + Date.now());
+let lastStopLineY = null;
+
+function updateLiveMetrics(extra = {}) {
+  if (typeof extra.cycles === 'number') liveStats.cycles = extra.cycles;
+  if (typeof extra.vehicles === 'number') liveStats.vehicles = extra.vehicles;
+  if (typeof extra.violations === 'number') liveStats.violations = extra.violations;
+  if (typeof extra.challans === 'number') liveStats.challans = extra.challans;
+  document.getElementById('mCycles').textContent = String(liveStats.cycles);
+  document.getElementById('mVehicles').textContent = String(liveStats.vehicles);
+  document.getElementById('mViolations').textContent = String(liveStats.violations);
+  document.getElementById('mChallans').textContent = String(liveStats.challans);
+  document.getElementById('mLast').textContent = 'Last update: ' + new Date().toLocaleTimeString();
+}
+
+fileInput.addEventListener('change', e => {
+  if(e.target.files[0]) loadFile(e.target.files[0]);
+});
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+
+function loadFile(f) {
+  selectedFile = f;
+  const url = URL.createObjectURL(f);
+  previewImg.src = url;
+  previewWrap.style.display = 'block';
+  analyzeBtn.disabled = false;
+}
+
+async function startCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Webcam is not supported in this browser.');
+    return;
+  }
+  try {
+    const constraints = {
+      video: {
+        facingMode: { ideal: cameraFacing },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    };
+    liveStream = await navigator.mediaDevices.getUserMedia(constraints);
+    const video = document.getElementById('liveVideo');
+    video.srcObject = liveStream;
+    video.onloadedmetadata = () => syncOverlaySize();
+    document.getElementById('webcamWrap').style.display = 'block';
+    document.getElementById('startCamBtn').disabled = true;
+    document.getElementById('stopCamBtn').disabled = false;
+    document.getElementById('liveDetectBtn').disabled = false;
+    document.getElementById('switchCamBtn').disabled = false;
+    document.getElementById('switchCamBtn').textContent = cameraFacing === 'environment' ? 'Rear Camera' : 'Front Camera';
+    document.getElementById('liveStatus').textContent = 'Camera started.';
+    updateLiveMetrics();
+  } catch (err) {
+    alert('Could not access webcam: ' + err.message);
+  }
+}
+
+function stopCamera() {
+  stopLiveDetection();
+  if (liveStream) {
+    liveStream.getTracks().forEach(track => track.stop());
+    liveStream = null;
+  }
+  document.getElementById('webcamWrap').style.display = 'none';
+  document.getElementById('startCamBtn').disabled = false;
+  document.getElementById('stopCamBtn').disabled = true;
+  document.getElementById('liveDetectBtn').disabled = true;
+  document.getElementById('switchCamBtn').disabled = true;
+  document.getElementById('liveStatus').textContent = 'Camera is off.';
+  clearOverlay();
+  liveStats = { cycles: 0, vehicles: 0, violations: 0, challans: 0 };
+  updateLiveMetrics();
+  fetch('/api/live_reset', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stream_id: liveStreamId })
+  }).catch(() => {});
+}
+
+async function switchCamera() {
+  if (!liveStream) return;
+  const wasLive = liveRunning;
+  stopLiveDetection();
+  liveStream.getTracks().forEach(track => track.stop());
+  liveStream = null;
+  cameraFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+  await startCamera();
+  if (wasLive) startLiveDetection();
+}
+
+function toggleLiveDetection() {
+  if (liveRunning) {
+    stopLiveDetection();
+  } else {
+    startLiveDetection();
+  }
+}
+
+function startLiveDetection() {
+  if (!liveStream) return;
+  liveRunning = true;
+  document.getElementById('liveDetectBtn').textContent = 'Stop Live';
+  document.getElementById('liveStatus').textContent = 'Live detection running...';
+  liveStats = { cycles: 0, vehicles: 0, violations: 0, challans: 0 };
+  updateLiveMetrics();
+  captureAndAnalyzeFrame();
+  liveTimer = setInterval(captureAndAnalyzeFrame, 1800);
+}
+
+function stopLiveDetection() {
+  liveRunning = false;
+  if (liveTimer) {
+    clearInterval(liveTimer);
+    liveTimer = null;
+  }
+  document.getElementById('liveDetectBtn').textContent = 'Start Live';
+  if (document.getElementById('stopCamBtn').disabled === false) {
+    document.getElementById('liveStatus').textContent = 'Camera started.';
+  }
+}
+
+async function captureAndAnalyzeFrame() {
+  if (!liveRunning || liveBusy) return;
+  const video = document.getElementById('liveVideo');
+  if (!video.videoWidth || !video.videoHeight) return;
+  const canvas = document.getElementById('liveCanvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const imageData = canvas.toDataURL('image/jpeg', 0.95);
+
+  liveBusy = true;
+  try {
+    const resp = await fetch('/api/live_analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: imageData,
+        stream_id: liveStreamId,
+        violation_type: document.getElementById('violationType').value,
+        stop_line_y: document.getElementById('stopLine').value,
+        auto_stop_line: document.getElementById('autoStopLine').checked
+      })
+    });
+    const data = await resp.json();
+    if (data.error) {
+      document.getElementById('liveStatus').textContent = data.error;
+      return;
+    }
+    drawLiveOverlay(data);
+    lastStopLineY = (typeof data.stop_line_y === 'number') ? data.stop_line_y : lastStopLineY;
+    if (data.annotated_image) {
+      renderResults(data);
+    }
+    const detCount = (data.detections || []).length;
+    const vioCount = (data.violations || []).length;
+    const challanCount = (data.challans_created || []).length;
+    updateLiveMetrics({
+      cycles: liveStats.cycles + 1,
+      vehicles: detCount,
+      violations: vioCount,
+      challans: liveStats.challans + challanCount
+    });
+    if (detCount === 0) {
+      document.getElementById('liveStatus').textContent = 'No vehicles detected. Try rear camera, better lighting, or wider road view.';
+    } else if (vioCount === 0) {
+      const lineTxt = (typeof data.stop_line_y === 'number')
+        ? `${data.stop_line_y}px`
+        : `${document.getElementById('stopLine').value}%`;
+      document.getElementById('liveStatus').textContent = `Detected ${detCount} vehicle(s), no violation at stop-line ${lineTxt}.`;
+    } else if (challanCount > 0) {
+      document.getElementById('liveStatus').textContent = `Detected ${detCount}, violations ${vioCount}, new challans ${challanCount}.`;
+    } else {
+      document.getElementById('liveStatus').textContent = `Detected ${detCount}, violations ${vioCount}, challans 0 (plate OCR unreadable or cooldown active).`;
+    }
+  } catch (err) {
+    document.getElementById('liveStatus').textContent = 'Live detection error: ' + err.message;
+  } finally {
+    liveBusy = false;
+  }
+}
+
+function syncOverlaySize() {
+  const video = document.getElementById('liveVideo');
+  const overlay = document.getElementById('liveOverlay');
+  const capture = document.getElementById('liveCanvas');
+  if (!video.videoWidth || !video.videoHeight) return;
+  overlay.width = video.videoWidth;
+  overlay.height = video.videoHeight;
+  capture.width = video.videoWidth;
+  capture.height = video.videoHeight;
+}
+
+function clearOverlay() {
+  const overlay = document.getElementById('liveOverlay');
+  const ctx = overlay.getContext('2d');
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+}
+
+function drawLiveOverlay(data) {
+  const overlay = document.getElementById('liveOverlay');
+  const ctx = overlay.getContext('2d');
+  const h = overlay.height;
+  const w = overlay.width;
+  if (!w || !h) return;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Stop line
+  const stopY = (typeof data.stop_line_y === 'number')
+    ? data.stop_line_y
+    : Math.round(h * Number(document.getElementById('stopLine').value || 35) / 100);
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, stopY);
+  ctx.lineTo(w, stopY);
+  ctx.stroke();
+  ctx.fillStyle = '#f59e0b';
+  ctx.font = '14px Segoe UI';
+  ctx.fillText('STOP LINE', 10, Math.max(16, stopY - 8));
+
+  const violationSet = new Set((data.violations || []).map(v => JSON.stringify(v.box)));
+  (data.detections || []).forEach(d => {
+    const box = d.box || [];
+    if (box.length !== 4) return;
+    const [x1, y1, x2, y2] = box;
+    const isViolation = violationSet.has(JSON.stringify(box));
+    ctx.strokeStyle = isViolation ? '#dc2626' : '#16a34a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+    const label = `${d.vehicle_type || 'vehicle'} ${(d.confidence || 0).toFixed(2)}`;
+    ctx.fillStyle = isViolation ? '#dc2626' : '#16a34a';
+    ctx.fillRect(x1, Math.max(0, y1 - 20), Math.max(80, label.length * 7), 18);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '12px Segoe UI';
+    ctx.fillText(label, x1 + 4, Math.max(13, y1 - 7));
+  });
+
+  (data.violations || []).forEach(v => {
+    if (!v.box || v.box.length !== 4) return;
+    const [x1, y1] = v.box;
+    const text = `VIOLATION: ${(v.violation_type || '').toUpperCase()}`;
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(x1, Math.max(0, y1 - 40), Math.max(120, text.length * 7), 18);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '12px Segoe UI';
+    ctx.fillText(text, x1 + 4, Math.max(13, y1 - 27));
+
+    if (v.plate_text) {
+      const ptext = `PLATE: ${v.plate_text}`;
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(x1, y1 + 4, Math.max(120, ptext.length * 7), 18);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(ptext, x1 + 4, y1 + 17);
+    }
+  });
+}
+
+async function analyzeImage() {
+  if(!selectedFile) return;
+
+  // Show spinner
+  document.getElementById('resultsEmpty').style.display = 'none';
+  document.getElementById('resultsContent').style.display = 'none';
+  document.getElementById('spinner').style.display = 'flex';
+  analyzeBtn.disabled = true;
+
+  const fd = new FormData();
+  fd.append('image', selectedFile);
+  fd.append('violation_type', document.getElementById('violationType').value);
+  fd.append('stop_line_y', document.getElementById('stopLine').value);
+  fd.append('auto_stop_line', document.getElementById('autoStopLine').checked ? 'true' : 'false');
+
+  try {
+    const resp = await fetch('/analyze', {method:'POST', body:fd});
+    const data = await resp.json();
+    renderResults(data);
+  } catch(err) {
+    alert('Error: ' + err.message);
+  } finally {
+    document.getElementById('spinner').style.display = 'none';
+    analyzeBtn.disabled = false;
+  }
+}
+
+function renderResults(data) {
+  const content = document.getElementById('resultsContent');
+  content.style.display = 'block';
+
+  // Annotated image
+  if (data.annotated_image) {
+    document.getElementById('annotatedImg').src = '/static/uploads/' + data.annotated_image + '?t=' + Date.now();
+    document.getElementById('annotatedCaption').textContent = data.annotated_image;
+  }
+  document.getElementById('summaryBar').textContent = data.summary || '';
+
+  // Violation cards
+  const cards = document.getElementById('violationCards');
+  cards.innerHTML = '';
+
+  if(!data.violations || data.violations.length === 0) {
+    cards.innerHTML = '<div style="color:var(--green);padding:1rem;background:rgba(44,182,125,.08);border:1px solid var(--green)">✓ No violations detected in this image.</div>';
+    return;
+  }
+
+  data.violations.forEach((v,i) => {
+    const challan = data.challans_created?.[i];
+    cards.innerHTML += `
+      <div class="vcard">
+        <div class="vcard-plate">${v.plate_text || 'PLATE NOT READ'}</div>
+        <div class="vcard-row"><span class="vcard-key">Vehicle</span><span class="vcard-val">${v.vehicle_type}</span></div>
+        <div class="vcard-row"><span class="vcard-key">Violation</span><span class="vcard-val">${v.violation_type.replace(/_/g,' ').toUpperCase()}</span></div>
+        <div class="vcard-row"><span class="vcard-key">OCR Confidence</span><span class="vcard-val">${((v.plate_confidence||0)*100).toFixed(1)}%</span></div>
+        <div class="vcard-row"><span class="vcard-key">Crossed by</span><span class="vcard-val">${v.crossed_by_px}px</span></div>
+        ${challan ? `
+        <div class="challan-issued">
+          <div class="challan-issued-title">✓ Challan Issued</div>
+          <div style="font-size:.8rem;color:var(--muted)">ID: <span style="color:var(--amber);font-family:'Share Tech Mono',monospace">#${challan.id}</span></div>
+          <div style="font-size:.8rem;color:var(--muted)">Owner: ${challan.owner_name}</div>
+          <div style="font-size:.8rem;color:var(--red)">Fine: ₹${challan.fine_amount.toLocaleString()}</div>
+          <a href="/challan/${challan.id}" style="font-size:.8rem;color:var(--blue);text-decoration:none">View Challan →</a>
+        </div>` : ''}
+      </div>`;
+  });
+}
+</script>
+</body>
+</html>

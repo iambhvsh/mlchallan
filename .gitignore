@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Virtual envs
+.venv/
+venv/
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Runtime/generated app data
+static/uploads/*
+!static/uploads/.gitkeep
+outputs/*
+!outputs/.gitkeep
+runs/
+
+# Local data/cache
+data/challans.json
+
+# Model weights and heavy binaries
+*.pt
+*.onnx
+*.engine
+*.tflite
+
+# Large media artifacts
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Logs and temp
+*.log
+*.tmp
+*.temp
